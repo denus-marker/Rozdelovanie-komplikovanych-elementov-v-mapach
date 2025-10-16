@@ -1,1 +1,1 @@
-# Rozde-ovanie-komplikovan-ch-elementov-v-map-ch
+# Rozdeľovanie komplikovaných elementov na mapách
