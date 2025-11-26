@@ -11,6 +11,7 @@ public class MapComplexFilterZima {
 
     // Default ISSprOM codes treated as complex
     public static final Set<String> DEFAULT_COMPLEX_CODES = new HashSet<>(Arrays.asList(
+<<<<<<< HEAD
             "201", "203", "206", "207", "208", "210",
             "301", "307", "310",
             "410", "411",
@@ -22,6 +23,19 @@ public class MapComplexFilterZima {
             "708", "709",
 
             "104", "202", "308", "406", "408", "521"
+=======
+            "201.0", "203.0", "206.0", "207.0", "208.0", "210.0",
+            "301.0", "307.0", "310.0",
+            "410.0", "411.0",
+            "107.0", "113.0",
+
+            "515.0", "518.0", "520.0", "529.0", "533.0",
+            "512.1", "512.2", "512.3",
+
+            "708.0", "709.0",
+
+            "104.0", "202.0", "308.0", "406.0", "408.0", "521.0"
+>>>>>>> 704bc89 (Added “.0” to codes)
             ));
 
     public static void main(String[] args) throws Exception {
