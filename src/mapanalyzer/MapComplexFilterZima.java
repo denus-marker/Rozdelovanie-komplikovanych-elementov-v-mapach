@@ -1,6 +1,7 @@
 package mapanalyzer;
 
 import org.w3c.dom.*;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
@@ -10,9 +11,7 @@ import java.util.*;
 public class MapComplexFilterZima {
 
     // Default ISSprOM codes treated as complex
-    public static final Set<String> DEFAULT_COMPLEX_CODES = new HashSet<>(Arrays.asList(
-<<<<<<< HEAD
-            "201", "203", "206", "207", "208", "210",
+    public static final Set<String> DEFAULT_COMPLEX_CODES = new HashSet<>(Arrays.asList("201", "203", "206", "207", "208", "210",
             "301", "307", "310",
             "410", "411",
             "107", "113",
@@ -23,7 +22,6 @@ public class MapComplexFilterZima {
             "708", "709",
 
             "104", "202", "308", "406", "408", "521"
-=======
             "201.0", "203.0", "206.0", "207.0", "208.0", "210.0",
             "301.0", "307.0", "310.0",
             "410.0", "411.0",
@@ -35,8 +33,7 @@ public class MapComplexFilterZima {
             "708.0", "709.0",
 
             "104.0", "202.0", "308.0", "406.0", "408.0", "521.0"
->>>>>>> 704bc89 (Added “.0” to codes)
-            ));
+    ));
 
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
@@ -67,7 +64,10 @@ public class MapComplexFilterZima {
         int i = 0;
         for (String code : usedCodes) {
             i++;
-            if(i == 10){ System.out.println(); i = 0;}
+            if (i == 10) {
+                System.out.println();
+                i = 0;
+            }
             System.out.print(code + ", ");
         }
 
