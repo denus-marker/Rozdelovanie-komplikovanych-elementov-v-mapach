@@ -1,39 +1,23 @@
 package mapanalyzer;
 
 import org.w3c.dom.*;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.File;
+import java.awt.geom.Point2D;
+import java.io.*;
 import java.util.*;
 
-// Reads .omap, finds used ISSprOM codes and counts complex objects by code
 public class MapComplexFilterZima {
+    // Symbol metadata: ISSprOM code and whether it is an area symbol
+    private static class SymbolInfo{
+        final String code;
+        final boolean isArea;
 
-    // Default ISSprOM codes treated as complex
-    public static final Set<String> DEFAULT_COMPLEX_CODES = new HashSet<>(Arrays.asList("201", "203", "206", "207", "208", "210",
-            "301", "307", "310",
-            "410", "411",
-            "107", "113",
-
-            "515", "518", "520", "529", "533",
-            "512.1", "512.2", "512.3",
-
-            "708", "709",
-
-            "104", "202", "308", "406", "408", "521",
-            "201.0", "203.0", "206.0", "207.0", "208.0", "210.0",
-            "301.0", "307.0", "310.0",
-            "410.0", "411.0",
-            "107.0", "113.0",
-
-            "515.0", "518.0", "520.0", "529.0", "533.0",
-            "512.1", "512.2", "512.3",
-
-            "708.0", "709.0",
-
-            "104.0", "202.0", "308.0", "406.0", "408.0", "521.0"
-    ));
+        SymbolInfo(String code, boolean isArea){
+            this.code = code;
+            this.isArea = isArea;
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
@@ -47,105 +31,156 @@ public class MapComplexFilterZima {
         }
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.parse(file);
         doc.getDocumentElement().normalize();
 
-        Map<String, String> symbolDefs = getSymbolDefinitions(doc);
+        Map<String, SymbolInfo> symbols = getSymbolInfo(doc);
 
-        int totalObjects = countAllObjectsWithCode(doc, symbolDefs);
-        int complexObjects = countComplexObjects(doc, symbolDefs, DEFAULT_COMPLEX_CODES);
+        Set<String> usedCodes = getUsedSymbolCodes(doc, symbols);
 
-        Set<String> usedCodes = getUsedSymbolCodes(doc, symbolDefs);
-        Set<String> complexCodesOnMap = new LinkedHashSet<>(usedCodes);
-        complexCodesOnMap.retainAll(DEFAULT_COMPLEX_CODES);
+        int totalAreaObjects = 0;
+        int simpleAreaObjects = 0;
+        int complexAreaObjects = 0;
 
-        System.out.println("Used symbol codes on map:");
-        int i = 0;
-        for (String code : usedCodes) {
-            i++;
-            if (i == 10) {
-                System.out.println();
-                i = 0;
+        NodeList objectNodes = doc.getElementsByTagName("object");
+        for (int i = 0; i < objectNodes.getLength(); i++) {
+            Element objectElement = (Element) objectNodes.item(i);
+
+            String symbolId = objectElement.getAttribute("symbol");
+            if(symbolId == null || symbolId.isEmpty()){
+                continue;
             }
-            System.out.print(code + ", ");
+
+            SymbolInfo info = symbols.get(symbolId);
+            if(info == null || !info.isArea){
+                continue;
+            }
+
+            List<Point2D.Double> points = readObjectGeometry(objectElement);
+            if(points.size() < 3){
+                continue;
+            }
+
+            totalAreaObjects++;
+
+            if(isSimpleShape(points)){
+                simpleAreaObjects++;
+            }else{
+                complexAreaObjects++;
+            }
         }
 
-        System.out.println();
-        System.out.println("Map file:              " + file.getName());
-        System.out.println("Total objects:         " + totalObjects);
-        System.out.println("Complex objects:       " + complexObjects);
-        System.out.println("Complex codes (default): " + DEFAULT_COMPLEX_CODES);
-        System.out.println("Complex codes on map:  " + complexCodesOnMap);
+        System.out.println("Map file:                " + file.getName());
+        System.out.println("Area objects (analyzed): " + totalAreaObjects);
+        System.out.println("Simple area objects:     " + simpleAreaObjects);
+        System.out.println("Complex area objects:    " + complexAreaObjects);
     }
 
-    // Returns map: symbol id -> ISSprOM code
-    private static Map<String, String> getSymbolDefinitions(Document doc) {
-        Map<String, String> map = new HashMap<>();
+    // Builds symbolId -> (code, isArea) map
+    private static Map<String, SymbolInfo> getSymbolInfo(Document doc) {
+        Map<String, SymbolInfo> map = new HashMap<>();
+
         NodeList symbolNodes = doc.getElementsByTagName("symbol");
         for (int i = 0; i < symbolNodes.getLength(); i++) {
             Element symbolElement = (Element) symbolNodes.item(i);
+
             String id = symbolElement.getAttribute("id");
             String code = symbolElement.getAttribute("code");
-            if (!id.isEmpty() && !code.isEmpty()) {
-                map.put(id, code);
+            if (id == null || id.isEmpty() || code == null || code.isEmpty()) {
+                continue;
             }
+
+            // If this symbol has an <area_symbol> child, we treat it as area
+            boolean isArea = symbolElement.getElementsByTagName("area_symbol").getLength() > 0;
+
+            map.put(id, new SymbolInfo(code.trim(), isArea));
         }
+
         return map;
     }
 
-    // Returns set of ISSprOM codes used by objects
-    private static Set<String> getUsedSymbolCodes(Document doc, Map<String, String> symbolDefs) {
+    // Returns set of ISSprOM codes used by any object (area / line / point)
+    private static Set<String> getUsedSymbolCodes(Document doc, Map<String, SymbolInfo> symbols) {
         Set<String> used = new LinkedHashSet<>();
 
         NodeList objectNodes = doc.getElementsByTagName("object");
         for (int i = 0; i < objectNodes.getLength(); i++) {
             Element objectElement = (Element) objectNodes.item(i);
-            String symbolId = objectElement.getAttribute("symbol");
-            if (symbolId == null || symbolId.isEmpty()) continue;
 
-            String code = symbolDefs.getOrDefault(symbolId, symbolId).trim();
+            String symbolId = objectElement.getAttribute("symbol");
+            if (symbolId == null || symbolId.isEmpty()) {
+                continue;
+            }
+
+            SymbolInfo info = symbols.get(symbolId);
+            String code = (info != null ? info.code : symbolId).trim();
             if (!code.isEmpty()) {
                 used.add(code);
             }
         }
+
         return used;
     }
 
-    // Returns number of objects that have any symbol code
-    private static int countAllObjectsWithCode(Document doc,
-                                               Map<String, String> symbolDefs) {
-        int count = 0;
-        NodeList objectNodes = doc.getElementsByTagName("object");
-        for (int i = 0; i < objectNodes.getLength(); i++) {
-            Element objectElement = (Element) objectNodes.item(i);
-            String symbolId = objectElement.getAttribute("symbol");
-            if (symbolId == null || symbolId.isEmpty()) continue;
+    // Parses <coords> text into list of points (x y [flag]; ...)
+    private static List<Point2D.Double> readObjectGeometry(Element objectElement) {
+        List<Point2D.Double> points = new ArrayList<>();
 
-            String code = symbolDefs.getOrDefault(symbolId, symbolId).trim();
-            if (!code.isEmpty()) {
-                count++;
+        NodeList coordsNodes = objectElement.getElementsByTagName("coords");
+        if (coordsNodes.getLength() == 0) {
+            return points;
+        }
+
+        Element coords = (Element) coordsNodes.item(0);
+        String text = coords.getTextContent();
+        if (text == null) {
+            return points;
+        }
+
+        String[] parts = text.trim().split(";");
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) {
+                continue;
+            }
+
+            String[] tokens = part.split("\\s+");
+            if (tokens.length < 2) {
+                continue;
+            }
+
+            try {
+                double x = Double.parseDouble(tokens[0]);
+                double y = Double.parseDouble(tokens[1]);
+                points.add(new Point2D.Double(x, y));
+            } catch (NumberFormatException ignored) {
             }
         }
-        return count;
+
+        return points;
     }
 
-    // Returns number of objects whose ISSprOM code is in complexCodes
-    private static int countComplexObjects(Document doc,
-                                           Map<String, String> symbolDefs,
-                                           Set<String> complexCodes) {
-        int count = 0;
-        NodeList objectNodes = doc.getElementsByTagName("object");
-        for (int i = 0; i < objectNodes.getLength(); i++) {
-            Element objectElement = (Element) objectNodes.item(i);
-            String symbolId = objectElement.getAttribute("symbol");
-            if (symbolId == null || symbolId.isEmpty()) continue;
 
-            String code = symbolDefs.getOrDefault(symbolId, symbolId).trim();
-            if (!code.isEmpty() && complexCodes.contains(code)) {
-                count++;
-            }
+    /* Returns true if shape is considered "simple".
+    Here: simple shape = polygon that can be decomposed into exactly one triangle.
+    That means it effectively has 3 unique vertices. */
+    private static boolean isSimpleShape(List<Point2D.Double> points) {
+        int n = points.size();
+        if (n < 3) {
+            return false;
         }
-        return count;
+
+        // If last point repeats the first, ignore it
+        Point2D.Double first = points.get(0);
+        Point2D.Double last = points.get(n - 1);
+        if (first.x == last.x && first.y == last.y) {
+            n--;
+        }
+
+        // Triangulation of a simple polygon uses (n - 2) triangles
+        int triangles = Math.max(1, n - 2);
+        return triangles == 1; // only triangles are "simple" for now
     }
 }
