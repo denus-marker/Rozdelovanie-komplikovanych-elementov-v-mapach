@@ -9,7 +9,7 @@ import java.util.*;
 
 public class MapComplexFilterZima {
     // Symbol metadata: ISSprOM code and whether it is an area symbol
-    private static class SymbolInfo{
+    private static class SymbolInfo {
         final String code;
         final boolean isArea;
 
@@ -37,8 +37,6 @@ public class MapComplexFilterZima {
         doc.getDocumentElement().normalize();
 
         Map<String, SymbolInfo> symbols = getSymbolInfo(doc);
-
-        Set<String> usedCodes = getUsedSymbolCodes(doc, symbols);
 
         int totalAreaObjects = 0;
         int simpleAreaObjects = 0;
@@ -99,29 +97,6 @@ public class MapComplexFilterZima {
         }
 
         return map;
-    }
-
-    // Returns set of ISSprOM codes used by any object (area / line / point)
-    private static Set<String> getUsedSymbolCodes(Document doc, Map<String, SymbolInfo> symbols) {
-        Set<String> used = new LinkedHashSet<>();
-
-        NodeList objectNodes = doc.getElementsByTagName("object");
-        for (int i = 0; i < objectNodes.getLength(); i++) {
-            Element objectElement = (Element) objectNodes.item(i);
-
-            String symbolId = objectElement.getAttribute("symbol");
-            if (symbolId == null || symbolId.isEmpty()) {
-                continue;
-            }
-
-            SymbolInfo info = symbols.get(symbolId);
-            String code = (info != null ? info.code : symbolId).trim();
-            if (!code.isEmpty()) {
-                used.add(code);
-            }
-        }
-
-        return used;
     }
 
     // Parses <coords> text into list of points (x y [flag]; ...)
