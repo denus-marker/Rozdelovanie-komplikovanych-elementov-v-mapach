@@ -141,7 +141,7 @@ public class MapComplexFilterZima {
     /* Returns true if shape is considered "simple".
     Here: simple shape = polygon that can be decomposed into exactly one triangle.
     That means it effectively has 3 unique vertices. */
-    private static boolean isSimpleShape(List<Point2D.Double> points) {
+    static boolean isSimpleShape(List<Point2D.Double> points) {
         int n = points.size();
         if (n < 3) {
             return false;
