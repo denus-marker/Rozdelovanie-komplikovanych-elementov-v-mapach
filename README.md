@@ -8,4 +8,4 @@ zložité mapové elementy tak, aby pripravené dáta mohli slúžiť ako podkla
 vyhľadávania najkratších ciest.
 
 Viac informácií o projekte (vrátane PDF reportu) je na webovej stránke:
-👉 https://denus-marker.github.io/Rozdelovanie-komplikovanych-elementov-v-mapach/index
+👉 https://www.st.fmph.uniba.sk/~martyniuk3/
