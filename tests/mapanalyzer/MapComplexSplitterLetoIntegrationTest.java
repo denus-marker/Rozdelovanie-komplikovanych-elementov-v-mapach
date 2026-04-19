@@ -6,9 +6,20 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+/*
+ Integration test for the full program flow.
+ The test creates a temporary .omap-like XML file containing:
+    - one simple triangle
+    - one complex quadrilateral
+
+ Then the program is executed through main(...)
+ and the printed statistics are verified.
+
+ This test describes the expected final behavior
+ after splitComplexShape(...) is implemented.
+*/
 public class MapComplexSplitterLetoIntegrationTest {
 
     @Test

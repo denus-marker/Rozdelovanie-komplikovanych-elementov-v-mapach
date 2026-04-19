@@ -3,9 +3,19 @@ package mapanalyzer;
 import org.junit.jupiter.api.Test;
 import java.awt.geom.Point2D;
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+/*
+ Unit tests for the planned polygon splitting logic.
+ These tests describe the expected behavior of the final implementation:
+    - triangle -> 1 simple part
+    - quadrilateral -> 2 triangles
+    - concave 5-vertex polygon -> 3 triangles
+    - invalid polygon -> no parts
+
+ In other words, the tests already define the target behavior
+ of splitComplexShape(...).
+ */
 public class MapComplexSplitterLetoTest {
 
     @Test
@@ -29,12 +39,13 @@ public class MapComplexSplitterLetoTest {
 
     @Test
     void quadrilateralProducesTwoTriangles() {
+        // Simple quadrilateral expected to split into 2 triangles.
         List<Point2D.Double> points = List.of(
                 new Point2D.Double(0.0, 0.0),
                 new Point2D.Double(1.0, 0.0),
                 new Point2D.Double(1.0, 1.0),
                 new Point2D.Double(0.0, 1.0),
-                new Point2D.Double(0.0, 0.0) // closed polygon
+                new Point2D.Double(0.0, 0.0)
         );
 
         List<List<Point2D.Double>> parts = MapComplexSplitterLeto.splitComplexShape(points);
@@ -73,6 +84,7 @@ public class MapComplexSplitterLetoTest {
 
     @Test
     void invalidPolygonProducesNoParts() {
+        // Less than 3 points -> not a valid polygon.
         List<Point2D.Double> points = List.of(
                 new Point2D.Double(0.0, 0.0),
                 new Point2D.Double(1.0, 0.0)
