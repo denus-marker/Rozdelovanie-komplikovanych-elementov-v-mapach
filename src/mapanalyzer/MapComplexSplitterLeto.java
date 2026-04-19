@@ -218,7 +218,50 @@ public class MapComplexSplitterLeto {
         - return a consistent polygon representation for later processing
     */
     private static List<Point2D.Double> normalizePolygon(List<Point2D.Double> points){
-        throw new RuntimeException("Not implemented yet.");
+        List<Point2D.Double> normalized = new ArrayList<>();
+
+        if (points==null || points.isEmpty()) return normalized;
+
+        // Copy all non-null points so the original list is not modified
+        for (Point2D.Double p : points){
+            if (p!=null){
+                normalized.add(new Point2D.Double(p.x, p.y));
+            }
+        }
+
+        if (normalized.isEmpty()) return normalized;
+
+        // Remove duplicated closing point if the last point equals the first
+        if (normalized.size() >= 2){
+            Point2D.Double first = normalized.getFirst();
+            Point2D.Double last = normalized.getLast();
+
+            if (first.x == last.x && first.y == last.y){
+                normalized.removeLast();
+            }
+        }
+
+        // Remove consecutive duplicate points
+        List<Point2D.Double> cleaned = new ArrayList<>();
+        Point2D.Double prev = null;
+        for (Point2D.Double curr : normalized){
+            if (prev == null || prev.x != curr.x || prev.y != curr.y){
+                cleaned.add(curr);
+                prev = curr;
+            }
+        }
+
+        // After removing consecutive duplicates, check again
+        // whether the polygon ends with the same point it starts with
+        if (cleaned.size() >= 2){
+            Point2D.Double first = cleaned.getFirst();
+            Point2D.Double last = cleaned.getLast();
+            if (first.x == last.x && first.y == last.y) {
+                cleaned.removeLast();
+            }
+        }
+
+        return cleaned;
     }
 
     /* Returns true if shape is considered "simple".
@@ -259,21 +302,40 @@ public class MapComplexSplitterLeto {
      This is useful for determining polygon orientation.
     */
     private static double polygonArea(List<Point2D.Double> points) {
-        throw new RuntimeException("Not implemented yet.");
+        if (points == null || points.size() < 3) return 0.0;
+
+        double area = 0.0;
+        int n = points.size();
+
+        for (int i = 0; i < n; i++) {
+            Point2D.Double curr = points.get(i);
+            Point2D.Double next = points.get((i + 1) % n);
+
+            area += curr.x * next.y - next.x * curr.y;
+        }
+
+        return area / 2.0;
     }
 
     // Should return true if polygon vertices are ordered clockwise.
+    // Degenerate polygons with zero area return false.
     private static boolean isClockwise(List<Point2D.Double> points){
-        throw new RuntimeException("Not implemented yet.");
+        return polygonArea(points) < 0;
     }
 
     /*
      Helper method for orientation of three points.
-     It will later be used for convexity checks
-     and other geometric operations.
+     Returns the signed 2D cross product of vectors AB and AC.
+     Positive value means left turn, negative means right turn,
+     zero means the points are collinear.
     */
     private static double cross(Point2D.Double a, Point2D.Double b, Point2D.Double c){
-        throw new RuntimeException("Not implemented yet.");
+        double abx = b.x - a.x;
+        double aby = b.y - a.y;
+        double acx = c.x - a.x;
+        double acy = c.y - a.y;
+
+        return abx * acy - aby * acx;
     }
 
     /*
@@ -282,7 +344,17 @@ public class MapComplexSplitterLeto {
      This will be important for triangulation.
     */
     private static boolean isConvex(Point2D.Double prev, Point2D.Double curr, Point2D.Double next, boolean clockwise){
-        throw new RuntimeException("Not implemented yet.");
+        double turn = cross(prev, curr, next);
+        double eps = 1e-9;
+
+        // Collinear points do not form a proper convex corner
+        if (Math.abs(turn) < eps){
+            return false;
+        }
+
+        // For clockwise polygons, a convex corner is a right turn (negative cross)
+        // For counterclockwise polygons, a convex corner is a left turn (positive cross)
+        return clockwise ? turn < 0 : turn > 0;
     }
 
     /*
