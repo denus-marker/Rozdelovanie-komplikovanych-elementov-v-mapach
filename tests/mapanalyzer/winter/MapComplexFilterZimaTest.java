@@ -1,4 +1,4 @@
-package mapanalyzer;
+package mapanalyzer.winter;
 
 import org.junit.jupiter.api.Test;
 import java.awt.geom.Point2D;

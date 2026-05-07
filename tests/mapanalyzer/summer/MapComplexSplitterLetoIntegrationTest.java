@@ -1,4 +1,4 @@
-package mapanalyzer;
+package mapanalyzer.summer;
 
 import org.junit.jupiter.api.Test;
 
@@ -7,12 +7,25 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static mapanalyzer.summer.MapComplexSplitterSummerApp.main;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class MapComplexFilterZimaIntegrationTest {
+/*
+ Integration test for the full program flow.
+ The test creates a temporary .omap-like XML file containing:
+    - one simple triangle
+    - one complex quadrilateral
+
+ Then the program is executed through main(...)
+ and the printed statistics are verified.
+
+ This test describes the expected final behavior
+ after splitComplexShape(...) is implemented.
+*/
+public class MapComplexSplitterLetoIntegrationTest {
 
     @Test
-    void analyzesSmallOmapFile() throws Exception {
+    void analyzesAndSplitsSmallOmapFile() throws Exception {
         // Minimal .omap-like XML with one simple and one complex area object
         String omapXml = """
                 <?xml version="1.0" encoding="UTF-8"?>
@@ -54,7 +67,7 @@ public class MapComplexFilterZimaIntegrationTest {
             System.setIn(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
             System.setOut(new PrintStream(outContent, true, StandardCharsets.UTF_8));
 
-            MapComplexFilterZima.main(new String[0]);
+            main(new String[0]);
 
         } finally {
             System.setIn(originalIn);
@@ -62,7 +75,7 @@ public class MapComplexFilterZimaIntegrationTest {
             Files.deleteIfExists(tempFile);
         }
 
-        String output = outContent.toString(StandardCharsets.UTF_8);
+        String output = new String(outContent.toByteArray(), StandardCharsets.UTF_8);
         String normalized = output.replaceAll("\\s+", " ");
 
         // Basic checks on reported statistics
@@ -72,5 +85,7 @@ public class MapComplexFilterZimaIntegrationTest {
                 "Program should report 1 simple area object.");
         assertTrue(normalized.contains("Complex area objects: 1"),
                 "Program should report 1 complex area object.");
+        assertTrue(normalized.contains("Produced simple parts: 3"),
+                "Program should report 3 produced simple parts in total.");
     }
 }

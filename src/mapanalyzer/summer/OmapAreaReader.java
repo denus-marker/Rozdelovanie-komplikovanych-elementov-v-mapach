@@ -1,79 +1,56 @@
-package mapanalyzer;
+package mapanalyzer.summer;
 
 import org.w3c.dom.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.geom.Point2D;
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class MapComplexFilterZima {
-    // Symbol metadata: ISSprOM code and whether it is an area symbol
+public class OmapAreaReader {
+
     private static class SymbolInfo {
         final String code;
         final boolean isArea;
 
-        SymbolInfo(String code, boolean isArea){
+        SymbolInfo(String code, boolean isArea) {
             this.code = code;
             this.isArea = isArea;
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter .omap file path: ");
-        String path = scanner.nextLine().trim();
-
-        File file = new File(path);
-        if (!file.isFile()) {
-            System.err.println("File not found: " + file.getAbsolutePath());
-            return;
-        }
+    public static List<List<Point2D.Double>> readAreaGeometries(File inputFile) throws Exception {
+        List<List<Point2D.Double>> areaGeometries = new ArrayList<>();
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.parse(file);
+        Document doc = builder.parse(inputFile);
         doc.getDocumentElement().normalize();
 
-        Map<String, SymbolInfo> symbols = getSymbolInfo(doc);
-
-        int totalAreaObjects = 0;
-        int simpleAreaObjects = 0;
-        int complexAreaObjects = 0;
+        Map<String, SymbolInfo> symbolInfoMap = getSymbolInfo(doc);
 
         NodeList objectNodes = doc.getElementsByTagName("object");
         for (int i = 0; i < objectNodes.getLength(); i++) {
             Element objectElement = (Element) objectNodes.item(i);
 
             String symbolId = objectElement.getAttribute("symbol");
-            if(symbolId == null || symbolId.isEmpty()){
+            if (symbolId == null || symbolId.isEmpty()) {
                 continue;
             }
 
-            SymbolInfo info = symbols.get(symbolId);
-            if(info == null || !info.isArea){
+            SymbolInfo info = symbolInfoMap.get(symbolId);
+            if (info == null || !info.isArea) {
                 continue;
             }
 
             List<Point2D.Double> points = readObjectGeometry(objectElement);
-            if(points.size() < 3){
-                continue;
-            }
-
-            totalAreaObjects++;
-
-            if(isSimpleShape(points)){
-                simpleAreaObjects++;
-            }else{
-                complexAreaObjects++;
-            }
+            areaGeometries.add(points);
         }
 
-        System.out.println("Map file:                " + file.getName());
-        System.out.println("Area objects (analyzed): " + totalAreaObjects);
-        System.out.println("Simple area objects:     " + simpleAreaObjects);
-        System.out.println("Complex area objects:    " + complexAreaObjects);
+        return areaGeometries;
     }
 
     // Builds symbolId -> (code, isArea) map
@@ -135,27 +112,5 @@ public class MapComplexFilterZima {
         }
 
         return points;
-    }
-
-
-    /* Returns true if shape is considered "simple".
-    Here: simple shape = polygon that can be decomposed into exactly one triangle.
-    That means it effectively has 3 unique vertices. */
-    static boolean isSimpleShape(List<Point2D.Double> points) {
-        int n = points.size();
-        if (n < 3) {
-            return false;
-        }
-
-        // If last point repeats the first, ignore it
-        Point2D.Double first = points.get(0);
-        Point2D.Double last = points.get(n - 1);
-        if (first.x == last.x && first.y == last.y) {
-            n--;
-        }
-
-        // Triangulation of a simple polygon uses (n - 2) triangles
-        int triangles = Math.max(1, n - 2);
-        return triangles == 1; // only triangles are "simple" for now
     }
 }
