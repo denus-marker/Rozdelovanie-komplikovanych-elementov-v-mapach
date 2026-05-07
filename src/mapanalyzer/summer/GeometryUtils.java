@@ -190,4 +190,34 @@ public class GeometryUtils {
 
         return false;
     }
+
+    /*
+     Future method:
+     returns one point on a cubic Bezier curve for parameter t in <0,1>.
+     Control points: p0, p1, p2, p3.
+    */
+    public static Point2D.Double cubicBezierPoint(
+            Point2D.Double p0,
+            Point2D.Double p1,
+            Point2D.Double p2,
+            Point2D.Double p3,
+            double t
+    ) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    /*
+     Future method:
+     approximates one cubic Bezier segment by a polyline with the given number of steps.
+     The result should contain points lying on the approximated curve.
+    */
+    public static List<Point2D.Double> approximateCurveSegment(
+            Point2D.Double p0,
+            Point2D.Double p1,
+            Point2D.Double p2,
+            Point2D.Double p3,
+            int steps
+    ) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
 }

@@ -22,6 +22,37 @@ public class OmapAreaReader {
         }
     }
 
+    // Raw coordinate from <coords>: x, y and optional flag.
+    static class RawCoord {
+        final double x;
+        final double y;
+        final int flags;
+
+        RawCoord(double x, double y, int flags) {
+            this.x = x;
+            this.y = y;
+            this.flags = flags;
+        }
+    }
+
+    // Result of converting raw .omap geometry into polygonal geometry.
+    static class GeometryBuildResult {
+        final boolean supported;
+        final boolean containsCurves;
+        final boolean containsHoles;
+        final List<Point2D.Double> points;
+
+        GeometryBuildResult(boolean supported,
+                            boolean containsCurves,
+                            boolean containsHoles,
+                            List<Point2D.Double> points) {
+            this.supported = supported;
+            this.containsCurves = containsCurves;
+            this.containsHoles = containsHoles;
+            this.points = points;
+        }
+    }
+
     public static List<List<Point2D.Double>> readAreaGeometries(File inputFile) throws Exception {
         List<List<Point2D.Double>> areaGeometries = new ArrayList<>();
 
@@ -46,7 +77,15 @@ public class OmapAreaReader {
                 continue;
             }
 
+            // Current version: read only polygonal coordinates directly.
             List<Point2D.Double> points = readObjectGeometry(objectElement);
+
+            // Future version:
+            // List<RawCoord> rawCoords = readRawGeometry(objectElement);
+            // GeometryBuildResult result = buildPolylineGeometry(rawCoords);
+            // if (!result.supported) continue;
+            // List<Point2D.Double> points = result.points;
+
             areaGeometries.add(points);
         }
 
@@ -112,5 +151,39 @@ public class OmapAreaReader {
         }
 
         return points;
+    }
+    /*
+     Future method:
+     parses <coords> into raw coordinates with flags.
+     Expected format: x y [flag]; ...
+    */
+    static List<RawCoord> readRawGeometry(Element objectElement) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    /*
+     Future method:
+     converts raw .omap geometry into polygonal geometry.
+     Smooth curve segments should be approximated by straight line segments.
+     Objects with unsupported geometry (for example holes) may be rejected.
+    */
+    static GeometryBuildResult buildPolylineGeometry(List<RawCoord> rawCoords) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    /*
+     Future method:
+     should return true if the given flag marks the start of a curve segment.
+    */
+    static boolean isCurveStart(int flags) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    /*
+     Future method:
+     should return true if the given flag marks a hole point / inner contour.
+    */
+    static boolean isHolePoint(int flags) {
+        throw new UnsupportedOperationException("Not implemented yet.");
     }
 }
