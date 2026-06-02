@@ -203,7 +203,28 @@ public class GeometryUtils {
             Point2D.Double p3,
             double t
     ) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        if (p0 == null || p1 == null || p2 == null || p3 == null) {
+            throw new IllegalArgumentException("Bezier control points must not be null.");
+        }
+
+        // Keep t in the valid interval <0, 1>.
+        if (t < 0.0) {
+            t = 0.0;
+        } else if (t > 1.0) {
+            t = 1.0;
+        }
+
+        double u = 1.0 - t;
+
+        double b0 = u * u * u;
+        double b1 = 3.0 * u * u * t;
+        double b2 = 3.0 * u * t * t;
+        double b3 = t * t * t;
+
+        double x = b0 * p0.x + b1 * p1.x + b2 * p2.x + b3 * p3.x;
+        double y = b0 * p0.y + b1 * p1.y + b2 * p2.y + b3 * p3.y;
+
+        return new Point2D.Double(x, y);
     }
 
     /*
@@ -218,6 +239,18 @@ public class GeometryUtils {
             Point2D.Double p3,
             int steps
     ) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        if (steps < 1) {
+            steps = 1;
+        }
+
+        List<Point2D.Double> result = new ArrayList<>();
+
+        // steps means number of straight segments, so we need steps + 1 points.
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            result.add(cubicBezierPoint(p0, p1, p2, p3, t));
+        }
+
+        return result;
     }
 }

@@ -77,14 +77,10 @@ public class OmapAreaReader {
                 continue;
             }
 
-            // Current version: read only polygonal coordinates directly.
-            List<Point2D.Double> points = readObjectGeometry(objectElement);
-
-            // Future version:
-            // List<RawCoord> rawCoords = readRawGeometry(objectElement);
-            // GeometryBuildResult result = buildPolylineGeometry(rawCoords);
-            // if (!result.supported) continue;
-            // List<Point2D.Double> points = result.points;
+            List<RawCoord> rawCoords = readRawGeometry(objectElement);
+            GeometryBuildResult result = buildPolylineGeometry(rawCoords);
+            if (!result.supported) continue;
+            List<Point2D.Double> points = result.points;
 
             areaGeometries.add(points);
         }
@@ -158,7 +154,50 @@ public class OmapAreaReader {
      Expected format: x y [flag]; ...
     */
     static List<RawCoord> readRawGeometry(Element objectElement) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        List<RawCoord> rawCoords = new ArrayList<>();
+
+        if (objectElement == null) {
+            return rawCoords;
+        }
+
+        NodeList coordsNodes = objectElement.getElementsByTagName("coords");
+        if (coordsNodes.getLength() == 0) {
+            return rawCoords;
+        }
+
+        Element coords = (Element) coordsNodes.item(0);
+        String text = coords.getTextContent();
+        if (text == null) {
+            return rawCoords;
+        }
+
+        String[] parts = text.trim().split(";");
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) {
+                continue;
+            }
+
+            String[] tokens = part.split("\\s+");
+            if (tokens.length < 2) {
+                continue;
+            }
+
+            try {
+                double x = Double.parseDouble(tokens[0]);
+                double y = Double.parseDouble(tokens[1]);
+                int flags = 0;
+
+                if (tokens.length >= 3) {
+                    flags = Integer.parseInt(tokens[2]);
+                }
+
+                rawCoords.add(new RawCoord(x, y, flags));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        return rawCoords;
     }
 
     /*
@@ -168,7 +207,47 @@ public class OmapAreaReader {
      Objects with unsupported geometry (for example holes) may be rejected.
     */
     static GeometryBuildResult buildPolylineGeometry(List<RawCoord> rawCoords) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        List<Point2D.Double> points = new ArrayList<>();
+
+        if (rawCoords == null || rawCoords.isEmpty()) {
+            return new GeometryBuildResult(false, false, false, points);
+        }
+
+        boolean containsCurves = false;
+        boolean containsHoles = false;
+
+        for (RawCoord coord : rawCoords) {
+            if (coord == null) {
+                continue;
+            }
+
+            if (isHolePoint(coord.flags)) {
+                containsHoles = true;
+            }
+
+            if (isCurveStart(coord.flags)) {
+                containsCurves = true;
+            }
+        }
+
+        // First supported version: reject objects with holes.
+        // Inner contours need separate processing, otherwise triangulation would be incorrect.
+        if (containsHoles) {
+            return new GeometryBuildResult(false, containsCurves, true, points);
+        }
+
+        // Plain polygon: copy points directly.
+        // For now, curve flags are only detected and the raw points are preserved.
+        // Curve approximation helpers are implemented separately and can be connected later
+        // when exact .omap curve flag semantics are finalized.
+        for (RawCoord coord : rawCoords) {
+            if (coord != null) {
+                points.add(new Point2D.Double(coord.x, coord.y));
+            }
+        }
+
+        boolean supported = points.size() >= 3;
+        return new GeometryBuildResult(supported, containsCurves, false, points);
     }
 
     /*
@@ -176,7 +255,9 @@ public class OmapAreaReader {
      should return true if the given flag marks the start of a curve segment.
     */
     static boolean isCurveStart(int flags) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        // Placeholder interpretation used by the preparation tests and future curve support.
+        // Flag 4 marks a coordinate related to a curve segment.
+        return (flags & 4) != 0;
     }
 
     /*
@@ -184,6 +265,8 @@ public class OmapAreaReader {
      should return true if the given flag marks a hole point / inner contour.
     */
     static boolean isHolePoint(int flags) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        // Placeholder interpretation used by the first supported version.
+        // Flag 8 marks a point belonging to an inner contour / hole.
+        return (flags & 8) != 0;
     }
 }
